@@ -206,6 +206,21 @@ check("无人工分时用 quality_total", storyboard_matcher._parse_quality(clip
 check("脏人分回退自动分", storyboard_matcher._parse_quality(clip_bad) == 55)
 check("人工分 0 有效", storyboard_matcher._parse_quality(clip_zero) == 0)
 
+# ---------- 7. 实用性：状态摘要 / 快捷分 ----------
+print("\n[7] 校准状态摘要与快捷分")
+st0 = score_calibrator.status_summary(None, 0)
+check("0 条有引导文案", "尚未标注" in st0["line"] or "好片" in st0["line"], st0["line"])
+check("0 条 need_more=3", st0["need_more"] == 3, str(st0["need_more"]))
+st2 = score_calibrator.status_summary({"ok": False}, 2)
+check("2 条还差 1", st2["need_more"] == 1)
+st_ok = score_calibrator.status_summary(
+    {"ok": True, "mode": "affine", "mae": 1.2, "message": "x"}, 5)
+check("生效文案", "已生效" in st_ok["line"], st_ok["line"])
+check("快捷分预设齐全", [x[1] for x in score_calibrator.QUICK_RATINGS] == [90, 60, 30])
+check("count_human_ratings", db.count_human_ratings() >= 3)
+cst = db.calibration_status()
+check("db.calibration_status 有 line", bool(cst.get("line")), str(cst))
+
 # ---------- 汇总 ----------
 passed = sum(1 for r in RESULTS if r["pass"])
 failed = sum(1 for r in RESULTS if not r["pass"])

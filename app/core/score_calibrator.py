@@ -257,3 +257,35 @@ def loads(raw: str) -> Optional[dict]:
         return json.loads(raw)
     except Exception:
         return None
+
+
+# 快捷评分预设（实操比拖 SpinBox 快）
+QUICK_RATINGS = (
+    ("好片", 90),
+    ("一般", 60),
+    ("差片", 30),
+)
+
+
+def status_summary(model: Optional[dict], n_labeled: int) -> Dict[str, Any]:
+    """给界面用的校准状态摘要（一眼能懂还差几条、有没有生效）。"""
+    need = max(0, MIN_AFFINE_SAMPLES - int(n_labeled or 0))
+    ok = bool(model and model.get("ok"))
+    mode = (model or {}).get("mode") or "none"
+    if n_labeled <= 0:
+        line = "人工校准：尚未标注。选片段后点「好片/一般/差片」，攒满 3 条后自动分会更贴近你的偏好。"
+    elif not ok:
+        line = f"人工校准：已标 {n_labeled} 条，还差 {need} 条开始校准。"
+    else:
+        mae = (model or {}).get("mae")
+        mae_s = f"，误差约 {mae}" if mae is not None else ""
+        mode_cn = "六维权重" if mode == "weighted" else "仿射"
+        line = f"人工校准：已生效（{mode_cn}，{n_labeled} 条样本{mae_s}）。新评分/选片会参考你的偏好。"
+    return {
+        "n_labeled": int(n_labeled or 0),
+        "need_more": need,
+        "ok": ok,
+        "mode": mode,
+        "line": line,
+        "message": (model or {}).get("message") or "",
+    }

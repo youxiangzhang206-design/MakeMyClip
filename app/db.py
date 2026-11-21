@@ -495,6 +495,27 @@ class ProjectDB:
         from .core import score_calibrator
         self.set_setting(score_calibrator.SETTINGS_KEY, score_calibrator.dumps(model or {}))
 
+    def count_human_ratings(self):
+        """有合法人工分的片段数（用于界面进度）。"""
+        n = 0
+        for c in self.get_clips():
+            hr = c.get("human_rating")
+            if hr is None or hr == "":
+                continue
+            try:
+                v = int(hr)
+            except (TypeError, ValueError):
+                continue
+            if 0 <= v <= 100:
+                n += 1
+        return n
+
+    def calibration_status(self):
+        """界面用：校准是否生效、还差几条、一句话说明。"""
+        from .core import score_calibrator
+        return score_calibrator.status_summary(
+            self.get_score_calibration(), self.count_human_ratings())
+
     def rebuild_score_calibration(self):
         """根据当前项目全部人工评分重建校准，并写回 settings。"""
         from .core import score_calibrator
